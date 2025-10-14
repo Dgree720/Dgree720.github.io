@@ -1,0 +1,143 @@
+{
+  "name": "First AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nMy name is Luarn. How can I assist you today?",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -288,
+        -48
+      ],
+      "id": "755b164f-722b-4d2e-96e8-9cd04c0379b4",
+      "name": "When chat message received",
+      "webhookId": "cf7f309d-70f9-4090-b5f4-969d51c3b827"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are a smart and considerate personal AI assistant. Please respond to messages based on the information you receive, keeping the following points in mind:\n- The current time is: {{ $now }}\n- When necessary, use the serpAPI tool to search the internet"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        -48
+      ],
+      "id": "9418e961-9a1f-4f12-bd38-6e69050ff4f3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        160
+      ],
+      "id": "77ff8dae-2dfb-4010-9802-383f8cf34caf",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "P0wWqmbiOLA94Lry",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        160
+      ],
+      "id": "0a2037ee-2f07-48ea-9baf-2b06df2e992d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        80,
+        160
+      ],
+      "id": "ebc34aa1-e2f0-4247-996b-c840160eba1c",
+      "name": "SerpAPI",
+      "credentials": {
+        "serpApi": {
+          "id": "aEsKtrDDC1Tblqs1",
+          "name": "SerpAPI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ede713ed-66f1-490b-ae71-569218211e92",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f99c0b38d61fd40b3986982e7369bc021df64168a734c9319139faf1a12f037"
+  },
+  "id": "qReznl63xPdR9Rz1",
+  "tags": []
+}

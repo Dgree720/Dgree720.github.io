@@ -1,0 +1,212 @@
+{
+  "name": "9nanoBanana",
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-image-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        80
+      ],
+      "id": "34345a28-2e21-4763-ad29-222bf97de5a3",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FKXZRS7kHmfv8JQp",
+          "name": "Google Gemini Api FreeJenny"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a 1/7 scale commercial figurine model of the main subject from the uploaded photo, presented in a realistic style, placed on a real computer desk environment. The model base should be a circular transparent acrylic material with no text on it. The computer screen displays the ZBrush modeling process of this figurine. Next to the screen is a packaging box with rounded corners and a transparent window on the front, with the model clearly visible inside the box.",
+        "options": {
+          "systemMessage": "Please generate an image"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        -112
+      ],
+      "id": "6b152f94-adfe-4ec6-9c97-93dd3cd7f248",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Webhook image data\nconst inputData = $input.first();\nconsole.log('=== Webhook Input Data Analysis ===');\nconsole.log('Input data structure:', {\n  hasBinary: !!inputData.binary,\n  hasJson: !!inputData.json,\n  binaryKeys: inputData.binary ? Object.keys(inputData.binary) : [],\n  jsonKeys: inputData.json ? Object.keys(inputData.json) : []\n});\n\n// Method 1: Check for standard binary format\nif (inputData.binary && inputData.binary.image) {\n  console.log('✅ Found standard binary image data');\n  return {\n    json: {\n      success: true,\n      imageProcessed: true,\n      source: 'binary_direct'\n    },\n    binary: inputData.binary\n  };\n}\n\n// Method 2: Process base64 image data in JSON\nif (inputData.json && inputData.json.image) {\n  let imageData = inputData.json.image;\n  let mimeType = 'image/png';\n  \n  console.log('✅ Found image data in JSON, length:', imageData.length);\n  \n  // Handle complete data URL format\n  if (imageData.startsWith('data:')) {\n    const [header, base64Data] = imageData.split(',');\n    const mimeMatch = header.match(/:(.*?);/);\n    mimeType = mimeMatch ? mimeMatch[1] : 'image/png';\n    imageData = base64Data;\n    console.log('Parsed data URL, MIME type:', mimeType);\n  }\n  \n  try {\n    // Convert to Buffer (mimicking Form Trigger format)\n    const buffer = Buffer.from(imageData, 'base64');\n    console.log('✅ Successfully converted to Buffer, size:', buffer.length, 'bytes');\n    \n    return {\n      json: {\n        success: true,\n        imageProcessed: true,\n        source: 'json_base64',\n        mimeType: mimeType\n      },\n      binary: {\n        image: {\n          data: buffer,\n          mimeType: mimeType,\n          fileName: 'uploaded_image.png'\n        }\n      }\n    };\n  } catch (error) {\n    console.error('❌ base64 conversion failed:', error.message);\n    return {\n      json: {\n        error: 'base64 data conversion failed: ' + error.message,\n        success: false,\n        source: 'conversion_error'\n      }\n    };\n  }\n}\n\n// Method 3: Check multipart form data format\nif (inputData.json && inputData.json.files) {\n  console.log('Checking multipart files');\n  const files = inputData.json.files;\n  const file = files.image || files[0];\n  \n  if (file && file.content) {\n    try {\n      const buffer = Buffer.from(file.content, 'base64');\n      return {\n        json: {\n          success: true,\n          imageProcessed: true,\n          source: 'multipart'\n        },\n        binary: {\n          image: {\n            data: buffer,\n            mimeType: file.mimetype || 'image/png',\n            fileName: file.filename || 'uploaded_image.png'\n          }\n        }\n      };\n    } catch (error) {\n      console.error('❌ multipart processing failed:', error.message);\n    }\n  }\n}\n\n// No image data found\nconsole.log('❌ No image data found');\nconsole.log('Available keys:', {\n  json: inputData.json ? Object.keys(inputData.json) : 'no json',\n  binary: inputData.binary ? Object.keys(inputData.binary) : 'no binary'\n});\n\nreturn {\n  json: {\n    error: 'No image data found, please check upload format',\n    success: false,\n    availableKeys: {\n      json: inputData.json ? Object.keys(inputData.json) : [],\n      binary: inputData.binary ? Object.keys(inputData.binary) : []\n    },\n    source: 'no_image_found'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -112
+      ],
+      "id": "48d0ef33-c860-49ad-9402-7ebb9ba833e4",
+      "name": "Process Webhook Image"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Based on successful logic\nconst inputData = $input.first().json;\nconsole.log('=== AI Agent Output Analysis ===');\nconsole.log('Output structure:', JSON.stringify(inputData, null, 2));\n\n// Check for inline image data (Gemini format)\nlet imageData = null;\nlet mimeType = null;\nlet foundLocation = null;\n\n// Check path 1: inlineData in output array\nif (inputData.output && Array.isArray(inputData.output)) {\n  console.log('Checking output array, length:', inputData.output.length);\n  \n  for (let i = 0; i < inputData.output.length; i++) {\n    const item = inputData.output[i];\n    console.log(`Output[${i}]:`, Object.keys(item));\n    \n    if (item.inlineData && item.inlineData.data) {\n      imageData = item.inlineData.data;\n      mimeType = item.inlineData.mimeType || 'image/png';\n      foundLocation = `output[${i}].inlineData`;\n      console.log('✅ Found inline image data in output, MIME type:', mimeType);\n      break;\n    }\n  }\n}\n\n// Check path 2: candidates structure (another Gemini format)\nif (!imageData && inputData.candidates && Array.isArray(inputData.candidates)) {\n  console.log('Checking candidates array, length:', inputData.candidates.length);\n  \n  for (let i = 0; i < inputData.candidates.length; i++) {\n    const candidate = inputData.candidates[i];\n    if (candidate.content && candidate.content.parts) {\n      for (let j = 0; j < candidate.content.parts.length; j++) {\n        const part = candidate.content.parts[j];\n        if (part.inlineData && part.inlineData.data) {\n          imageData = part.inlineData.data;\n          mimeType = part.inlineData.mimeType || 'image/png';\n          foundLocation = `candidates[${i}].content.parts[${j}].inlineData`;\n          console.log('✅ Found inline image data in candidates, MIME type:', mimeType);\n          break;\n        }\n      }\n      if (imageData) break;\n    }\n  }\n}\n\n// If no inline data found, try to find image URL\nif (!imageData) {\n  console.log('No inline data found, searching for image URL');\n  \n  let textOutput = '';\n  if (inputData.output) {\n    textOutput = JSON.stringify(inputData.output);\n  } else if (inputData.text) {\n    textOutput = String(inputData.text);\n  } else {\n    textOutput = JSON.stringify(inputData);\n  }\n  \n  console.log('Searching text content length:', textOutput.length);\n  \n  // Search for various image URL formats\n  const urlPatterns = [\n    /https?:\\/\\/[^\\s\"'<>]+\\.(png|jpg|jpeg|gif|webp)/gi,\n    /https?:\\/\\/[^\\s\"'<>]*image[^\\s\"'<>]*/gi,\n    /https?:\\/\\/[^\\s\"'<>]*\\.googleapis\\.com[^\\s\"'<>]*/gi\n  ];\n  \n  for (const pattern of urlPatterns) {\n    const matches = textOutput.match(pattern);\n    if (matches && matches.length > 0) {\n      console.log('✅ Found image URL:', matches[0]);\n      foundLocation = 'text_url_search';\n      return {\n        json: {\n          has_image: true,\n          image_type: 'url',\n          image_url: matches[0],\n          original_output: inputData,\n          found_location: foundLocation,\n          search_pattern: pattern.toString()\n        }\n      };\n    }\n  }\n}\n\n// Return result\nif (imageData) {\n  console.log('✅ Successfully extracted image data, source:', foundLocation);\n  return {\n    json: {\n      has_image: true,\n      image_type: 'base64',\n      image_data: imageData,\n      mime_type: mimeType,\n      original_output: inputData,\n      found_location: foundLocation\n    }\n  };\n} else {\n  console.log('❌ No image data found');\n  \n  // Provide detailed debug information\n  const debugInfo = {\n    hasOutput: !!inputData.output,\n    outputLength: inputData.output ? inputData.output.length : 0,\n    hasCandidates: !!inputData.candidates,\n    candidatesLength: inputData.candidates ? inputData.candidates.length : 0,\n    hasText: !!inputData.text,\n    textLength: inputData.text ? inputData.text.length : 0,\n    topLevelKeys: Object.keys(inputData)\n  };\n  \n  return {\n    json: {\n      has_image: false,\n      image_data: null,\n      original_output: inputData,\n      debug_info: debugInfo,\n      error: 'No generated image data found, AI may not have successfully generated the image'\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        -112
+      ],
+      "id": "179c32ea-c133-462c-ab19-929b7632c363",
+      "name": "Extract Generated Image"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Unified handling for both base64 and URL\nconst inputData = $input.first().json;\nconsole.log('=== Image Processing ===');\nconsole.log('Input data:', { \n  has_image: inputData.has_image, \n  image_type: inputData.image_type,\n  has_image_data: !!inputData.image_data,\n  has_image_url: !!inputData.image_url,\n  found_location: inputData.found_location\n});\n\n// Case 1: Process base64 format image data\nif (inputData.has_image === true && inputData.image_type === 'base64' && inputData.image_data) {\n  console.log('✅ Processing base64 image data');\n  \n  try {\n    // Process base64 data\n    let base64Data = inputData.image_data;\n    \n    // Remove possible data URL prefix\n    if (base64Data.startsWith('data:')) {\n      base64Data = base64Data.split(',')[1];\n    }\n    \n    // Generate complete data URL\n    const mimeType = inputData.mime_type || 'image/png';\n    const generatedImageBase64 = `data:${mimeType};base64,${base64Data}`;\n    \n    // Generate filename\n    let extension = 'png';\n    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {\n      extension = 'jpg';\n    } else if (mimeType.includes('gif')) {\n      extension = 'gif';\n    } else if (mimeType.includes('webp')) {\n      extension = 'webp';\n    }\n    \n    const fileName = `figurine_${new Date().toISOString().replace(/[:.]/g, '-')}.${extension}`;\n    \n    console.log('✅ base64 processing successful');\n    console.log('- Filename:', fileName);\n    console.log('- MIME type:', mimeType);\n    console.log('- Data size:', base64Data.length, 'characters');\n    \n    // Return final result directly, skip download process\n    return {\n      json: {\n        success: true,\n        generatedImage: generatedImageBase64,\n        fileName: fileName,\n        mimeType: mimeType,\n        message: '🎎 Figurine model generated successfully!',\n        processType: 'base64_direct',\n        source: inputData.found_location,\n        // Special flag to skip download node\n        skipDownload: true\n      }\n    };\n    \n  } catch (error) {\n    console.error('❌ Error processing base64 data:', error);\n    return {\n      json: {\n        success: false,\n        error: 'base64 data processing failed: ' + error.message,\n        processType: 'base64_error',\n        skipDownload: true\n      }\n    };\n  }\n}\n\n// Case 2: Process image URL, needs download\nelse if (inputData.has_image === true && inputData.image_type === 'url' && inputData.image_url) {\n  console.log('✅ Processing image URL:', inputData.image_url);\n  \n  // Validate URL format\n  try {\n    new URL(inputData.image_url);\n    \n    return {\n      json: {\n        success: true,\n        needDownload: true,\n        imageUrl: inputData.image_url,\n        message: 'Found image URL, preparing to download',\n        processType: 'url_download',\n        source: inputData.found_location,\n        skipDownload: false\n      }\n    };\n  } catch (urlError) {\n    console.error('❌ Invalid image URL:', inputData.image_url);\n    return {\n      json: {\n        success: false,\n        error: 'Invalid image URL: ' + inputData.image_url,\n        processType: 'url_error',\n        skipDownload: true\n      }\n    };\n  }\n}\n\n// Case 3: No valid image data found\nelse {\n  console.log('❌ No valid image data found');\n  \n  const errorMessage = inputData.error || 'No generated image data found';\n  \n  return {\n    json: {\n      success: false,\n      error: errorMessage,\n      message: 'Image generation failed, please try again',\n      processType: 'no_image',\n      debug_info: inputData.debug_info || null,\n      original_output: inputData.original_output || null,\n      skipDownload: true\n    }\n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        -112
+      ],
+      "id": "0ecfc1ab-9fa1-480f-923b-434fd1a6d8d5",
+      "name": "Process Image Data"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "figurine-generator",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        -112
+      ],
+      "id": "9008010c-4d2b-41cd-964b-ba5cb16a7aaa",
+      "name": "Webhook",
+      "webhookId": "figurine-generator"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        -112
+      ],
+      "id": "bff20556-4912-464f-ac79-d8e1e35b1560",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Extract Generated Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Webhook Image": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Generated Image": {
+      "main": [
+        [
+          {
+            "node": "Process Image Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Image Data": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Webhook Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ab653e38-2031-463c-8c6b-744969d6a625",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f99c0b38d61fd40b3986982e7369bc021df64168a734c9319139faf1a12f037"
+  },
+  "id": "jdPkMTkTgsgH1sjC",
+  "tags": []
+}

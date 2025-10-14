@@ -1,0 +1,272 @@
+{
+  "name": "4ImageToFB",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upload-image",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -496,
+        -208
+      ],
+      "id": "4a436129-1923-4c07-969a-8f9185b23367",
+      "name": "Webhook - Generate Content",
+      "webhookId": "upload-image-webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "post-to-facebook",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -384,
+        256
+      ],
+      "id": "db47684e-9f3e-4b2c-b41a-94700dccb5cb",
+      "name": "Webhook - Post to Facebook",
+      "webhookId": "post-facebook-webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a short, inspiring post combining AI and spirituality. Focus on themes of creativity, innovation, technology, digital art, and positive living.\n\nStyle:\n- Warm, inspiring, motivational yet professional\n- 5-6 sentences\n- Include English text only\n- Concise and shareable\n\nThemes:\n- Creativity and the future\n- Overcoming challenges through innovation\n- How technology changes the world\n- AI art inspiration and aesthetics\n- Human-AI collaboration\n- Beautiful lifestyle\n- Happiness through self-discovery\n\nFormat:\n1. Main inspirational message (English)\n2. Call to action with emojis\n3. Relevant hashtags\n\nExample:\n\"Every failure is a lesson, and every AI-generated masterpiece starts with a single prompt. Keep creating, keep growing!\"\nThe future of art is in your hands. 🎨🤖\n#MagicAIArt #DailyMotivation #AICreativity #TechInnovation #StableDiffusion #ComfyUI #DigitalArt\n\nRequired hashtags:\n#AI #AIArt #DigitalArt #GenerativeAI #AICreativity #Inspiration #Motivation #TechInnovation",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -256,
+        -112
+      ],
+      "id": "fcaed1f5-b20d-484b-8547-162f0720d223",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        80,
+        -192
+      ],
+      "id": "467cdf3d-af94-440f-aa43-3ac00f34bbec",
+      "name": "Merge for Generate"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-exp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        32
+      ],
+      "id": "56fc109d-ddd1-4135-b3b2-ce900f330e45",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "P0wWqmbiOLA94Lry",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": true,\n  \"message\": $json.output\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        288,
+        -192
+      ],
+      "id": "7983147a-7492-476a-b91f-5903e492e561",
+      "name": "Respond - Generate"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "me",
+        "edge": "photos",
+        "sendBinaryData": true,
+        "binaryPropertyName": "image",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "message",
+                "value": "={{ $json.body.message }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        256
+      ],
+      "id": "18b56091-5187-42c2-9214-1ea1106391af",
+      "name": "Facebook Graph API",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "mnzYsA7Go3PmeOm0",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": true,\n  \"message\": \"Post successfully published to Facebook!\"\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        96,
+        256
+      ],
+      "id": "629553e8-9958-41d0-8079-1439811f4556",
+      "name": "Respond - Post"
+    },
+    {
+      "parameters": {
+        "content": "## AI Inspirational Post Generator\nUpload an image and let AI create inspiring content",
+        "height": 480,
+        "width": 1072
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -608,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "da8f2e32-51a4-4463-bdbb-1134d7b2c74d",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## AI Inspirational Post Generator\nPost to facebook",
+        "height": 272,
+        "width": 1072,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -608,
+        192
+      ],
+      "typeVersion": 1,
+      "id": "503748a2-f820-45c9-a517-6151c988745e",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Generate Content": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge for Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge for Generate",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge for Generate": {
+      "main": [
+        [
+          {
+            "node": "Respond - Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Facebook Graph API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Graph API": {
+      "main": [
+        [
+          {
+            "node": "Respond - Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "157cd6ef-b4e8-4b04-8987-73a4683db62e",
+  "meta": {
+    "instanceId": "9f99c0b38d61fd40b3986982e7369bc021df64168a734c9319139faf1a12f037"
+  },
+  "id": "ihrofXZ7hbvS5Mia",
+  "tags": []
+}

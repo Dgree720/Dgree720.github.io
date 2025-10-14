@@ -1,0 +1,272 @@
+{
+  "name": "6Financial Times RSS",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "fetch-rss-news",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -144
+      ],
+      "id": "f98791d6-7ba7-4335-8941-1e3cc2bc5544",
+      "name": "Webhook - Fetch News Trigger",
+      "webhookId": "fetch-rss-news"
+    },
+    {
+      "parameters": {
+        "url": "https://www.ft.com/?format=rss",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -176,
+        -144
+      ],
+      "id": "d8815ead-ba04-4cdc-9ea9-28c95f7fa6ee",
+      "name": "Fetch Financial Times RSS"
+    },
+    {
+      "parameters": {
+        "jsCode": "let rssData;\nconst inputData = items[0];\n\nif (inputData.body) {\n  rssData = inputData.body;\n} else if (inputData.json && inputData.json.data) {\n  rssData = inputData.json.data;\n} else if (inputData.json && typeof inputData.json === 'string') {\n  rssData = inputData.json;\n} else if (inputData.data) {\n  rssData = inputData.data;\n} else if (typeof inputData === 'string') {\n  rssData = inputData;\n} else {\n  throw new Error('Cannot find RSS data');\n}\n\nif (typeof rssData !== 'string') {\n  if (rssData && typeof rssData === 'object') {\n    rssData = JSON.stringify(rssData);\n  } else {\n    throw new Error('RSS data is not valid string format');\n  }\n}\n\nlet articles = [];\n\ntry {\n  if (!rssData.includes('<rss') && !rssData.includes('<feed')) {\n    throw new Error('Not valid RSS or Atom format');\n  }\n  \n  const itemRegex = /<item[^>]*>([\\s\\S]*?)<\\/item>/gi;\n  const itemMatches = rssData.match(itemRegex);\n  \n  if (!itemMatches || itemMatches.length === 0) {\n    throw new Error('No items found in RSS');\n  }\n  \n  itemMatches.forEach((itemXml, index) => {\n    try {\n      const titleMatch = itemXml.match(/<title[^>]*><!\\[CDATA\\[(.*?)\\]\\]><\\/title>|<title[^>]*>(.*?)<\\/title>/i);\n      const title = titleMatch ? (titleMatch[1] || titleMatch[2] || '').trim() : '';\n      \n      const descMatch = itemXml.match(/<description[^>]*><!\\[CDATA\\[(.*?)\\]\\]><\\/description>|<description[^>]*>(.*?)<\\/description>/i);\n      let description = descMatch ? (descMatch[1] || descMatch[2] || '').trim() : '';\n      description = description.replace(/<[^>]*>/g, '').trim();\n      \n      const linkMatch = itemXml.match(/<link[^>]*>(.*?)<\\/link>/i);\n      const link = linkMatch ? linkMatch[1].trim() : '';\n      \n      const pubDateMatch = itemXml.match(/<pubDate[^>]*>(.*?)<\\/pubDate>/i);\n      let pubDate = new Date();\n      if (pubDateMatch) {\n        const dateString = pubDateMatch[1].trim();\n        pubDate = new Date(dateString);\n        if (isNaN(pubDate.getTime())) {\n          pubDate = new Date();\n        }\n      }\n      \n      const categoryMatch = itemXml.match(/<category[^>]*>(.*?)<\\/category>/i);\n      const category = categoryMatch ? categoryMatch[1].trim() : 'Finance News';\n      \n      let importanceScore = 0;\n      \n      const importantKeywords = [\n        'AI', 'artificial intelligence', 'machine learning', 'ChatGPT', 'OpenAI',\n        'chip', 'semiconductor', 'TSMC', 'Taiwan Semiconductor',\n        'Apple', 'iPhone', 'iPad', 'Mac', 'Microsoft', 'Windows', 'Azure',\n        'Google', 'Android', 'Chrome', 'NVIDIA', 'AMD', 'Intel',\n        'Tesla', 'electric vehicle', 'EV', 'autonomous',\n        '5G', '6G', 'IoT', 'cloud', 'blockchain', 'crypto',\n        'metaverse', 'VR', 'AR', 'virtual reality',\n        'quantum', 'quantum computing', 'space', 'SpaceX', 'satellite',\n        'biotech', 'gene', 'DNA', 'medical technology',\n        'startup', 'funding', 'investment', 'IPO',\n        'cybersecurity', 'hacker', 'privacy', 'open source', 'Linux'\n      ];\n      \n      const fullText = title + ' ' + description;\n      importantKeywords.forEach(keyword => {\n        if (fullText.toLowerCase().includes(keyword.toLowerCase())) {\n          importanceScore += 10;\n          if (title.toLowerCase().includes(keyword.toLowerCase())) {\n            importanceScore += 5;\n          }\n        }\n      });\n      \n      const hoursOld = (new Date() - pubDate) / (1000 * 60 * 60);\n      if (hoursOld < 6) importanceScore += 30;\n      else if (hoursOld < 24) importanceScore += 20;\n      else if (hoursOld < 48) importanceScore += 10;\n      \n      if (title.length > 10 && title.length < 100) importanceScore += 5;\n      if (description.length > 50) importanceScore += 5;\n      \n      if (title && link) {\n        articles.push({\n          title: title,\n          description: description || 'No description available',\n          link: link,\n          pubDate: pubDate.toISOString(),\n          importanceScore: importanceScore,\n          category: category\n        });\n      }\n    } catch (itemError) {\n      console.error('Error parsing item:', itemError.message);\n    }\n  });\n} catch (error) {\n  throw new Error('RSS parsing failed: ' + error.message);\n}\n\nconst validArticles = articles.filter(article => {\n  return article.title && article.title.trim() !== '' && article.link && article.link.trim() !== '';\n});\n\nif (validArticles.length === 0) {\n  throw new Error('No valid articles found');\n}\n\nconst topArticles = validArticles.sort((a, b) => b.importanceScore - a.importanceScore).slice(0, 3);\n\nreturn [{ json: {\n  selectedArticles: topArticles,\n  totalArticles: validArticles.length,\n  processedAt: new Date().toISOString(),\n  source: 'Financial Times',\n  rssUrl: 'https://www.ft.com/?format=rss'\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        -144
+      ],
+      "id": "b23ae7ad-15cd-445e-83b4-a9bdc7893880",
+      "name": "Parse RSS and Select Top News"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional Financial Times social media editor. Write a Facebook post for these news articles.\n\n【News Data】\n{% for article in $json.selectedArticles %}\nArticle {{ loop.index }}:\nTitle: {{ article.title }}\nContent: {{ article.description }}\nLink: {{ article.link }}\n\n{% endfor %}\n\n【Rules】\n- Use ONLY the real links provided above\n- After each news: \"🔗 Full Story: [actual link]\"\n- NEVER create fake links\n- Match each article title with its correct link\n\n【Format】\n🌅 Good morning! Today's 3 important financial news from Financial Times~\n\n📰 【Article 1】\n[150-200 chars description in English based on article 1 title and content]\n🔗 Full Story: {{ $json.selectedArticles[0].link }}\n\n📰 【Article 2】\n[description based on article 2]\n🔗 Full Story: {{ $json.selectedArticles[1].link }}\n\n📰 【Article 3】\n[description based on article 3]\n🔗 Full Story: {{ $json.selectedArticles[2].link }}\n\n💭 【Editor's Thoughts】\n[2-3 sentence summary in German about these 3 news topics]\n\n#Finance #FinancialTimes #Business #FinanceNews",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        272,
+        -144
+      ],
+      "id": "cb8ed36c-2ddd-4733-85f8-36d8cc828b98",
+      "name": "Generate Facebook Post"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        64
+      ],
+      "id": "deced183-2805-4cef-a5fd-934f8e22711d",
+      "name": "Google Gemini Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "P0wWqmbiOLA94Lry",
+          "name": "Google Gemini Api luarnpinPaid"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the previous node's data (Parse RSS output)\nconst previousData = $('Parse RSS and Select Top News').first().json;\n\n// Get AI generated post from current node\nconst currentData = items[0].json;\nlet generatedPost = currentData.output || currentData.text || '';\n\n// Combine everything\nreturn [{ \n  json: {\n    success: true,\n    source: previousData.source || 'Financial Times',\n    totalArticles: previousData.totalArticles || 0,\n    selectedArticles: previousData.selectedArticles || [],\n    processedAt: previousData.processedAt || new Date().toISOString(),\n    rssUrl: previousData.rssUrl || 'https://www.ft.com/?format=rss',\n    generatedPost: generatedPost,\n    fbPost: generatedPost\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -144
+      ],
+      "id": "beb5a398-8ad6-493c-9f54-4fe782dab87e",
+      "name": "Combine Response Data"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "post-rss-to-facebook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        160
+      ],
+      "id": "3d2b5c24-5a73-4aa8-888e-b0d3b444255d",
+      "name": "Webhook - Post to Facebook Trigger",
+      "webhookId": "post-rss-to-facebook"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v18.0",
+        "node": "me",
+        "edge": "feed",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "message",
+                "value": "={{ $json.body.message }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        160
+      ],
+      "id": "e914b7ae-dcc6-41b9-8b8f-4d764be7716f",
+      "name": "Post to Facebook",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "mnzYsA7Go3PmeOm0",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fbResponse = items[0].json;\n\nreturn [{ json: {\n  success: true,\n  message: 'Successfully posted to Facebook',\n  postId: fbResponse.id || null,\n  postedAt: new Date().toISOString()\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        160
+      ],
+      "id": "22fec6b3-113a-45eb-ba43-0a8cfd965e84",
+      "name": "Post Success Response"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        672
+      ],
+      "id": "c72044a2-1223-42c6-a88e-3fc2bc2a5529",
+      "name": "Google Gemini (Auto)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "P0wWqmbiOLA94Lry",
+          "name": "Google Gemini Api luarnpinPaid"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Fetch News Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Financial Times RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Financial Times RSS": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS and Select Top News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse RSS and Select Top News": {
+      "main": [
+        [
+          {
+            "node": "Generate Facebook Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Facebook Post": {
+      "main": [
+        [
+          {
+            "node": "Combine Response Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Facebook Post",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Post to Facebook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Post Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0008da12-b751-4ed1-b375-408a8f778b3d",
+  "meta": {
+    "instanceId": "9f99c0b38d61fd40b3986982e7369bc021df64168a734c9319139faf1a12f037"
+  },
+  "id": "1gGcivzdapc0RKWK",
+  "tags": []
+}

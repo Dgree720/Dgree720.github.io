@@ -1,0 +1,211 @@
+{
+  "name": "61Scheduled Financial Times RSS",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// RSS parsing code for Node.js environment (without DOMParser)\n\n// Get HTTP request response data\nlet rssData;\nconst inputData = items[0];\n\nconsole.log('========== Input Data Check ==========');\nconsole.log('Input data type:', typeof inputData);\nconsole.log('Input data properties:', Object.keys(inputData));\n\n// Try multiple possible data paths\nif (inputData.body) {\n  rssData = inputData.body;\n} else if (inputData.json && inputData.json.data) {\n  rssData = inputData.json.data;\n} else if (inputData.json && typeof inputData.json === 'string') {\n  rssData = inputData.json;\n} else if (inputData.data) {\n  rssData = inputData.data;\n} else if (typeof inputData === 'string') {\n  rssData = inputData;\n} else {\n  console.log('Full input data:', JSON.stringify(inputData, null, 2));\n  throw new Error('Cannot find RSS data, please check HTTP request node response format');\n}\n\nconsole.log('RSS data type:', typeof rssData);\nconsole.log('RSS data length:', rssData ? rssData.length : 'undefined');\nconsole.log('RSS content preview:', rssData ? rssData.substring(0, 300) : 'no data');\n\n// Ensure rssData is a string\nif (typeof rssData !== 'string') {\n  if (rssData && typeof rssData === 'object') {\n    rssData = JSON.stringify(rssData);\n  } else {\n    throw new Error('RSS data is not a valid string format');\n  }\n}\n\n// Parse RSS XML using regex (Node.js compatible)\nlet articles = [];\n\ntry {\n  console.log('========== Starting RSS Parsing ==========');\n  \n  // Check if valid XML\n  if (!rssData.includes('<rss') && !rssData.includes('<feed')) {\n    throw new Error('Not a valid RSS or Atom format');\n  }\n  \n  // Extract all <item> tags using regex\n  const itemRegex = /<item[^>]*>([\\s\\S]*?)<\\/item>/gi;\n  const itemMatches = rssData.match(itemRegex);\n  \n  if (!itemMatches || itemMatches.length === 0) {\n    throw new Error('No item elements found in RSS');\n  }\n  \n  console.log('Number of items found:', itemMatches.length);\n  \n  // Parse each item\n  itemMatches.forEach((itemXml, index) => {\n    try {\n      // Extract title\n      const titleMatch = itemXml.match(/<title[^>]*><!\\[CDATA\\[(.*?)\\]\\]><\\/title>|<title[^>]*>(.*?)<\\/title>/i);\n      const title = titleMatch ? (titleMatch[1] || titleMatch[2] || '').trim() : '';\n      \n      // Extract description\n      const descMatch = itemXml.match(/<description[^>]*><!\\[CDATA\\[(.*?)\\]\\]><\\/description>|<description[^>]*>(.*?)<\\/description>/i);\n      let description = descMatch ? (descMatch[1] || descMatch[2] || '').trim() : '';\n      \n      // Clean HTML tags\n      description = description.replace(/<[^>]*>/g, '').trim();\n      \n      // Extract link\n      const linkMatch = itemXml.match(/<link[^>]*>(.*?)<\\/link>/i);\n      const link = linkMatch ? linkMatch[1].trim() : '';\n      \n      // Extract publication date\n      const pubDateMatch = itemXml.match(/<pubDate[^>]*>(.*?)<\\/pubDate>/i);\n      let pubDate = new Date();\n      if (pubDateMatch) {\n        const dateString = pubDateMatch[1].trim();\n        pubDate = new Date(dateString);\n        if (isNaN(pubDate.getTime())) {\n          console.warn('Cannot parse date:', dateString);\n          pubDate = new Date();\n        }\n      }\n      \n      // Extract category\n      const categoryMatch = itemXml.match(/<category[^>]*>(.*?)<\\/category>/i);\n      const category = categoryMatch ? categoryMatch[1].trim() : 'Finance News';\n      \n      // Calculate news importance score\n      let importanceScore = 0;\n      \n      // Important keywords scoring (adjusted for Financial Times content)\n      const importantKeywords = [\n        'AI', 'artificial intelligence', 'machine learning', 'deep learning', 'ChatGPT', 'OpenAI',\n        'chip', 'semiconductor', 'TSMC', 'Taiwan Semiconductor', 'MediaTek',\n        'Apple', 'iPhone', 'iPad', 'Mac',\n        'Microsoft', 'Windows', 'Azure',\n        'Google', 'Android', 'Chrome',\n        'NVIDIA', 'AMD', 'Intel',\n        'Tesla', 'electric vehicle', 'EV', 'autonomous driving',\n        '5G', '6G', 'IoT', 'cloud', 'blockchain', 'cryptocurrency',\n        'metaverse', 'VR', 'AR', 'virtual reality', 'augmented reality',\n        'quantum', 'quantum computing', 'quantum computing',\n        'space', 'SpaceX', 'satellite', 'rocket',\n        'biotech', 'gene', 'DNA', 'medical technology',\n        'startup', 'funding', 'investment', 'IPO',\n        'ASUS', 'Acer', 'Foxconn',\n        'cybersecurity', 'hacker', 'network security', 'privacy',\n        'open source', 'Linux'\n      ];\n      \n      const fullText = title + ' ' + description;\n      importantKeywords.forEach(keyword => {\n        if (fullText.includes(keyword)) {\n          importanceScore += 10;\n          // Extra points if keyword appears in title\n          if (title.includes(keyword)) {\n            importanceScore += 5;\n          }\n        }\n      });\n      \n      // Newer news gets higher scores\n      const hoursOld = (new Date() - pubDate) / (1000 * 60 * 60);\n      if (hoursOld < 6) importanceScore += 30;\n      else if (hoursOld < 24) importanceScore += 20;\n      else if (hoursOld < 48) importanceScore += 10;\n      \n      // Moderate title length gets points\n      if (title.length > 10 && title.length < 100) {\n        importanceScore += 5;\n      }\n      \n      // Detailed description gets points\n      if (description.length > 50) {\n        importanceScore += 5;\n      }\n      \n      // Only add valid articles\n      if (title && link) {\n        articles.push({\n          title: title,\n          description: description || 'No description available',\n          link: link,\n          pubDate: pubDate.toISOString(),\n          importanceScore: importanceScore,\n          category: category\n        });\n        \n        console.log(`Parsed article ${index + 1}:`, {\n          title: title.substring(0, 50) + '...',\n          score: importanceScore,\n          hasLink: !!link\n        });\n      } else {\n        console.log(`Skipped invalid article ${index + 1}:`, { title, hasLink: !!link });\n      }\n      \n    } catch (itemError) {\n      console.error(`Error parsing item ${index + 1}:`, itemError.message);\n      // Continue processing next item\n    }\n  });\n  \n  console.log('Successfully parsed articles count:', articles.length);\n  \n} catch (error) {\n  console.error('RSS parsing error:', error);\n  console.error('Error details:', error.stack);\n  throw new Error('RSS parsing failed: ' + error.message);\n}\n\n// Filter out invalid articles\nconst validArticles = articles.filter(article => {\n  const hasValidTitle = article.title && article.title.trim() !== '';\n  const hasValidLink = article.link && article.link.trim() !== '';\n  \n  return hasValidTitle && hasValidLink;\n});\n\nconsole.log('Valid articles after filtering:', validArticles.length);\n\nif (validArticles.length === 0) {\n  throw new Error('No valid news articles found, please check RSS source');\n}\n\n// Sort by importance score and select top 3\nconst topArticles = validArticles\n  .sort((a, b) => b.importanceScore - a.importanceScore)\n  .slice(0, Math.min(3, validArticles.length));\n\nconsole.log('========== Selected Important News ==========');\ntopArticles.forEach((article, index) => {\n  console.log(`Rank ${index + 1}:`);\n  console.log('Title:', article.title);\n  console.log('Importance Score:', article.importanceScore);\n  console.log('Publication Date:', article.pubDate);\n  console.log('Category:', article.category);\n  console.log('Link:', article.link);\n  console.log('Description Preview:', article.description.substring(0, 100) + '...');\n  console.log('---');\n});\n\n// Output data\nconst outputData = {\n  selectedArticles: topArticles,\n  totalArticles: validArticles.length,\n  processedAt: new Date().toISOString(),\n  source: 'Financial Times',\n  rssUrl: 'https://www.ft.com/?format=rss'\n};\n\nconsole.log('========== Output Data Summary ==========');\nconsole.log('Selected articles count:', outputData.selectedArticles.length);\nconsole.log('Total articles count:', outputData.totalArticles);\nconsole.log('Processing time:', outputData.processedAt);\n\nreturn [{ json: outputData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -208
+      ],
+      "id": "3ffa218d-7cc2-45ed-950c-3c27694f9ea1",
+      "name": "Parse RSS and Select Important News"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional Financial Times social media editor. Write a Facebook post for these news articles.\n\n【News Data】\n{% for article in $json.selectedArticles %}\nArticle {{ loop.index }}:\nTitle: {{ article.title }}\nContent: {{ article.description }}\nLink: {{ article.link }}\n\n{% endfor %}\n\n【Rules】\n- Use ONLY the real links provided above\n- After each news: \"🔗 Full Story: [actual link]\"\n- NEVER create fake links\n\n【Format】\n🌅 Good morning! Today's 3 important financial news from Financial Times~\n\n📰 【Article 1】\n[150-200 chars description in English]\n🔗 Full Story: {{ $json.selectedArticles[0].link }}\n\n📰 【Article 2】\n[description]\n🔗 Full Story: {{ $json.selectedArticles[1].link }}\n\n📰 【Article 3】\n[description]\n🔗 Full Story: {{ $json.selectedArticles[2].link }}\n\n💭 【Editor's Thoughts】\n[Summary in German]\n\n#Finance #FinancialTimes #Business #FinanceNews",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        -208
+      ],
+      "id": "32ebc6bf-4ebc-4e29-8653-3206046157c1",
+      "name": "AI Generate FB Post"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        32
+      ],
+      "id": "d5f0f478-3b49-4c57-a12f-196cbb12c0c0",
+      "name": "Google Gemini Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "P0wWqmbiOLA94Lry",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v18.0",
+        "node": "me",
+        "edge": "feed",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "message",
+                "value": "={{ $json.output }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        272,
+        -208
+      ],
+      "id": "fd3f2890-d9c8-46f7-adc6-0d17225cd50d",
+      "name": "Post to Facebook",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "mnzYsA7Go3PmeOm0",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fixed version: RSS parsing result check node\nconst data = items[0].json;\n\nconsole.log('========== RSS Parsing Result Check ==========');\nconsole.log('Input data structure:', Object.keys(data));\nconsole.log('Selected articles count:', data.selectedArticles ? data.selectedArticles.length : 0);\nconsole.log('Total articles count:', data.totalArticles || 0);\nconsole.log('Data source:', data.source || 'unknown');\n\n// Check RSS parsing results\nif (!data.selectedArticles || !Array.isArray(data.selectedArticles)) {\n  throw new Error('RSS parsing failed: No selected articles found');\n}\n\nif (data.selectedArticles.length === 0) {\n  throw new Error('RSS parsing failed: No articles selected');\n}\n\n// Check completeness of each article\nlet validArticleCount = 0;\ndata.selectedArticles.forEach((article, index) => {\n  const hasTitle = article.title && article.title.trim() !== '';\n  const hasLink = article.link && article.link.trim() !== '';\n  const hasDescription = article.description && article.description.trim() !== '';\n  \n  console.log(`Article ${index + 1}:`);\n  console.log('- Title:', hasTitle ? '✓' : '✗', article.title?.substring(0, 50) + '...');\n  console.log('- Link:', hasLink ? '✓' : '✗', article.link?.substring(0, 50) + '...');\n  console.log('- Description:', hasDescription ? '✓' : '✗', article.description?.substring(0, 50) + '...');\n  console.log('- Importance Score:', article.importanceScore || 0);\n  \n  if (hasTitle && hasLink) {\n    validArticleCount++;\n  }\n});\n\nconsole.log('Valid articles count:', validArticleCount);\n\nif (validArticleCount === 0) {\n  throw new Error('All selected articles are missing required information (title or link)');\n}\n\nconsole.log('✅ RSS parsing result check passed');\nconsole.log('========================================');\n\n// Pass data directly to next node\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        16
+      ],
+      "id": "8b16b3ea-4b18-44fd-95a9-58f22cc4944d",
+      "name": "Content Check (Debug)"
+    },
+    {
+      "parameters": {
+        "url": "https://www.ft.com/?format=rss",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -448,
+        -208
+      ],
+      "id": "23afd93e-b434-4179-bafe-f727a7b0e058",
+      "name": "Financial Times RSS"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -656,
+        -208
+      ],
+      "id": "06fe5135-0ad8-47b4-97af-b1cd40319cf8",
+      "name": "Daily 10:30 AM Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parse RSS and Select Important News": {
+      "main": [
+        [
+          {
+            "node": "Content Check (Debug)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Generate FB Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Generate FB Post": {
+      "main": [
+        [
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Generate FB Post",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Financial Times RSS": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS and Select Important News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 10:30 AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Financial Times RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "760e85fc-7cfa-43ac-96cd-02d686552c87",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f99c0b38d61fd40b3986982e7369bc021df64168a734c9319139faf1a12f037"
+  },
+  "id": "x0SzTlkyv31OUBTx",
+  "tags": []
+}

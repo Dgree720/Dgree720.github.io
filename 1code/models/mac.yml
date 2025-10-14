@@ -1,0 +1,20 @@
+name: tensorflow
+channels:
+  - apple
+  - conda-forge
+dependencies:
+    - python=3.9
+    - pip>=19.0
+    - tensorflow-deps
+    - pillow
+    - tqdm
+    - requests
+    - h5py
+    - pyyaml
+    - flask
+    - boto3
+    - ipykernel
+    - pip:
+        - tensorflow-macos
+        - tensorflow-metal
+        - bayesian-optimization

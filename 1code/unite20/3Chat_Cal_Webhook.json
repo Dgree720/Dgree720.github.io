@@ -1,0 +1,381 @@
+{
+  "name": "3Chat_Cal_Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=你是一個聰明貼心的個人 AI 助理，請依據你收到的資訊來回覆訊息，回覆時請參考以下要點：\n- 使用繁體中文來回達訊息。\n- 你可以查詢我的行程\n- 需要的時候請用serpAPI這個tool去上網搜尋\n- 現在的時間是：{{ $now }}\n- 回覆時請不要使用換行符號 '\\n', '\\n\\n' 或 https 網址\n- 回覆時請刪除 '您好！根據查詢到的資訊'\n- 如果我請你處理任何行程的功能，請使用 Google Calendar Tool 來處理\n- 如果我請你新增行程，但沒有提供行程的結束時間，則行程預設時長設為1小時\n- 如果我請你修改行程，請先使用 Google Calendar Tool 取得該行程的原始資訊，然後再去修改該行程的內容"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ],
+      "maxIterations": 15,
+      "maxExecutionTime": 120,
+      "verbose": true,
+      "id": "0fec6a5c-bd06-4fc8-8e47-494cef356d82",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        240
+      ],
+      "id": "9adc54e8-41fc-466d-8d13-468ea57da6f4",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        576,
+        240
+      ],
+      "id": "63f18ec1-a001-462e-8e8a-227035adc5bf",
+      "name": "SerpAPI",
+      "credentials": {
+        "serpApi": {
+          "id": "aEsKtrDDC1Tblqs1",
+          "name": "SerpAPI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 準備推送數據\nconst webhookData = $('Webhook').first().json;\n\n// 生成 session ID 如果沒有提供\nlet sessionId = webhookData.body.sessionId;\nif (!sessionId) {\n  sessionId = 'web_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);\n}\n\nreturn {\n  chatInput: webhookData.body.message || webhookData.body.text || '',\n  sessionId: sessionId,\n  userId: sessionId, // 使用 sessionId 作為 userId\n  timestamp: webhookData.body.timestamp || new Date().toISOString(),\n  clientInfo: {\n    userAgent: webhookData.headers['user-agent'] || '',\n    ip: webhookData.headers['x-forwarded-for'] || webhookData.headers['x-real-ip'] || ''\n  }\n};"
+      },
+      "id": "ed89df14-f504-4bf3-bdc6-6aa796debded",
+      "name": "Prepare Chat Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8de21508-a83d-4f0a-8b61-e4384ab11b8d",
+      "name": "Webhook",
+      "webhookId": "9557b7f9-5011-4617-889c-6829691e4873"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 處理 AI 回應並準備回傳\nconst agentResponse = $('AI Agent').first().json; // 修正：改為正確的節點名稱\nconst prepareData = $('Prepare Chat Data').first().json;\n\n// 嘗試從不同可能的回應欄位獲取文字\nlet responseText = agentResponse.text || \n                  agentResponse.output || \n                  agentResponse.response ||\n                  agentResponse.content ||\n                  '抱歉，我現在無法處理您的請求，請稍後再試。';\n\n// 處理文字格式\nlet safeText = responseText\n  .replace(/\\r\\n/g, '\\n')\n  .replace(/\\r/g, '\\n')\n  .trim();\n\n// 移除不需要的前綴（如系統提示的要求）\nsafeText = safeText.replace(/^您好！根據查詢到的資訊[，。:]?\\s*/i, '');\n\n// 移除 https 網址（如系統提示的要求）\nsafeText = safeText.replace(/https?:\\/\\/[^\\s]+/g, '[網址已移除]');\n\n// 限制回應長度\n\n// 如果回應為空，提供預設回應\nif (!safeText || safeText.trim() === '') {\n  safeText = '很抱歉，我現在無法正確理解您的問題。請您換個方式提問，我會盡力為您解答！';\n}\n\n// 除錯資訊（開發時使用，正式環境可移除）\nconsole.log('AI Agent 原始回應:', agentResponse);\nconsole.log('處理後的回應文字:', safeText);\n\nreturn {\n  success: true,\n  message: safeText,\n  sessionId: prepareData.sessionId,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "e826085a-eb35-4f3d-9060-d4951bfc3fe9",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "97fbbf35-1d1b-4b45-bf97-cb86250947f5",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        224,
+        240
+      ],
+      "id": "7792bbb9-9f6c-4cd5-b10a-1e6402a083dc",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "P0wWqmbiOLA94Lry",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "luarn@gapps.ntust.edu.tw",
+          "mode": "list",
+          "cachedResultName": "luarn@gapps.ntust.edu.tw"
+        },
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', ``, 'number') }}",
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        240
+      ],
+      "id": "b46a5141-dff2-43b3-8320-a439478948dc",
+      "name": "Get events",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "LfbROvEHgE4Hg1ty",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "luarn@gapps.ntust.edu.tw",
+          "mode": "list",
+          "cachedResultName": "luarn@gapps.ntust.edu.tw"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "useDefaultReminders": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Use_Default_Reminders', ``, 'boolean') }}",
+        "additionalFields": {
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        240
+      ],
+      "id": "5077684b-875a-4195-8305-7ae8055a7191",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "LfbROvEHgE4Hg1ty",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "luarn@gapps.ntust.edu.tw",
+          "mode": "list",
+          "cachedResultName": "luarn@gapps.ntust.edu.tw"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1088,
+        240
+      ],
+      "id": "2c3264bd-98c2-4922-98b8-8ff696573000",
+      "name": "Delete an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "LfbROvEHgE4Hg1ty",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "luarn@gapps.ntust.edu.tw",
+          "mode": "list",
+          "cachedResultName": "luarn@gapps.ntust.edu.tw"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "useDefaultReminders": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Use_Default_Reminders', ``, 'boolean') }}",
+        "updateFields": {
+          "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        240
+      ],
+      "id": "c8460910-cd60-4bbb-b7ba-3fc17dc0c5da",
+      "name": "Update an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "LfbROvEHgE4Hg1ty",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Chat Data": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Chat Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get events": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete an event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update an event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "58281273-ec8c-4754-adc6-75869faa7da5",
+  "meta": {
+    "instanceId": "9f99c0b38d61fd40b3986982e7369bc021df64168a734c9319139faf1a12f037"
+  },
+  "id": "wlq4mHJJU6rPtZaO",
+  "tags": []
+}
