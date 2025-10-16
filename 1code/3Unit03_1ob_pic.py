@@ -33,4 +33,5 @@ for detection in detection_result.detections:
         1,
     )
 cv2.imshow("Unit03_1 | 322022 |", image)
+cv2.moveWindow("Unit03_1 | 322022 |", 3000, 600)
 cv2.waitKey(0)

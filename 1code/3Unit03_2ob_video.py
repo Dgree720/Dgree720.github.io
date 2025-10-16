@@ -36,6 +36,7 @@ while cap.isOpened():
             1,
         )
     cv2.imshow("Unit03_2 | 322022 |", image)
+    cv2.moveWindow("Unit03_2 | 322022 |", 3000, 600)
     if cv2.waitKey(1) & 0xFF == 27:
         break
 
