@@ -21,10 +21,10 @@ while cap.isOpened():
     w, h = (int(image.shape[1]), int(image.shape[0]))
     imagesBK = np.zeros([2, h, w, 3], np.uint8)
 
-    imagesBK = np.full(
+    """imagesBK = np.full(
         (2, w, h, 3), 255, dtype=np.uint8
     )  # implementation for white background
-
+    """
     imgrgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = fm.process(imgrgb)  # process the image
     if results.multi_face_landmarks:

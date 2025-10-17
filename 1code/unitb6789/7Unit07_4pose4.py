@@ -108,14 +108,14 @@ while cap.isOpened():
             2,
         )
         # hand raise to 95% or lowerto 5%, it is considered halfway
-        color = (0, 0, 255)
+        color2 = (0, 0, 255)
         if left_per >= 90:
-            color = (0, 255, 0)
+            color2 = (0, 255, 0)
             if switch == 0:
                 count2 += 0.5
                 switch = 1
         if left_per <= 10:
-            color = (0, 255, 0)
+            color2 = (0, 255, 0)
             if switch == 1:
                 count2 += 0.5
                 switch = 0
