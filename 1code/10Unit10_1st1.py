@@ -5,12 +5,12 @@ import streamlit as st
 
 cap = cv2.VideoCapture(0)
 
-st.title('Streamlit + CV2 Unit10_1 | StudentID | st1')
-run = st.checkbox('Run')
+st.title("Streamlit + CV2 Unit10_1 | 322022 | st1")
+run = st.checkbox("Run")
 FRAME_WINDOW = st.image([])
 
 while run:
     success, frame = cap.read()
-    FRAME_WINDOW.image(frame, channels= 'BGR')
+    FRAME_WINDOW.image(frame, channels="BGR")
 
 cap.release()
