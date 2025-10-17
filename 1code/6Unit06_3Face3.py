@@ -47,6 +47,7 @@ while cap.isOpened():
                     - img_height / 2
                 ),
             )
+
             mouth_area = image[y : y + img_height, x : x + img_width]
             try:
                 mouth_area_no_mouth = cv2.bitwise_and(
@@ -56,6 +57,46 @@ while cap.isOpened():
                     mouth_area_no_mouth, mouth
                 )  # put the mouth pic on top of image
                 image[y : y + img_height, x : x + img_width] = mouth  # at (x, y)
+
+                # implementation to display eyes
+                left_eye_x = int(f_landmarks.landmark[386].x * w)
+                left_eye_y = int(
+                    ((f_landmarks.landmark[374].y + f_landmarks.landmark[386].y) / 2)
+                    * h
+                )
+                right_eye_x = int(f_landmarks.landmark[145].x * w)
+                right_eye_y = int(
+                    ((f_landmarks.landmark[145].y + f_landmarks.landmark[159].y) / 2)
+                    * h
+                )
+
+                white_part = int(mouth_len * 0.9)
+                black_part = int(white_part * 0.5)
+
+                cv2.circle(
+                    image,
+                    (left_eye_x, left_eye_y),
+                    white_part,
+                    (255, 255, 255),
+                    -1,
+                )
+                cv2.circle(
+                    image,
+                    (right_eye_x, right_eye_y),
+                    white_part,
+                    (255, 255, 255),
+                    -1,
+                )
+
+                cv2.circle(image, (left_eye_x, left_eye_y), black_part, (255, 0, 0), -1)
+                cv2.circle(
+                    image,
+                    (right_eye_x, right_eye_y),
+                    black_part,
+                    (255, 0, 0),
+                    -1,
+                )
+
             except:
                 print("An error occurred.")
     cv2.imshow("Unit06_3 | StudentID | faceLM3", image)
