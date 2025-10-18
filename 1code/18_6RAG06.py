@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 llm = OllamaLLM(model="gemma3:1b", temperature=0.7)
 
-st.title("Toolbox 18_6RAG06" + "|Student ID|")
+st.title("Toolbox 18_6RAG06" + "| 322022 |")
 role = st.selectbox(
     "What role would you like the AI to play?",
     ("Senior Python Developer", "Professional English Teacher"),

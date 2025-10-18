@@ -40,7 +40,7 @@ chain_with_memory = RunnableWithMessageHistory(
 )
 
 # ----------------- Streamlit -----------------
-st.title("🧠 Chatbot with Memory (Gemma + LCEL) 18_5RAG05" + "|Student ID|")
+st.title("🧠 Chatbot with Memory (Gemma + LCEL) 18_5RAG05" + "| 322022 |")
 # Display history
 for msg in chat_history.messages:
     st.chat_message(msg.type).write(msg.content)

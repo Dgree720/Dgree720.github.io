@@ -10,7 +10,10 @@ from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_community.vectorstores.utils import filter_complex_metadata
 
 # --- Prompt Template ---
-promptTemplate = """You are an expert assistant. Answer the question as precisely as possible using the provided context. If the provided context does not contain sufficient information, please answer using your internal knowledge.
+promptTemplate = """You are an expert assistant. 
+Answer the question as precisely as possible using the provided context. 
+If the provided context does not contain sufficient information, 
+please answer using your internal knowledge.
 
 Context: {context}
 Question: {question}
@@ -71,7 +74,7 @@ def model_response(message):
 
 def main():
     global llm
-    st.title("📚 Case PDF Reading Assistant 18_7RAG07" + "|Student ID|")
+    st.title("📚 Case PDF Reading Assistant 18_7RAG07" + "| 322022 |")
 
     # Initialize LLM (avoid repeated initialization)
     if llm is None:

@@ -105,7 +105,7 @@ def get_model_response(question):
 
 
 # --- Main UI ---
-st.title("📚 Case PDF Reading Assistant II 18_8RAG08" + "|Student ID|")
+st.title("📚 Case PDF Reading Assistant II 18_8RAG08" + "| 322022 |")
 
 # Sidebar for PDF upload
 with st.sidebar:
