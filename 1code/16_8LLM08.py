@@ -16,7 +16,7 @@ st.title("🖼️ Image content recognition（gpt-5-nano）")
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    st.image(uploaded_file, caption="image uploaded ", width='stretch')
+    st.image(uploaded_file, caption="image uploaded ", width="stretch")
 
     # Convert the image to base64
     image_bytes = uploaded_file.read()

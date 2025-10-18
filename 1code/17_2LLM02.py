@@ -9,17 +9,23 @@ import pandas as pd
 import gensim.downloader as api
 
 # Page configuration
-st.set_page_config(page_title="Word Vector 3D Visualization", layout="wide", page_icon="📊")
+st.set_page_config(
+    page_title="Word Vector 3D Visualization", layout="wide", page_icon="📊"
+)
 st.title("📊 Word Vector 3D Visualization|Student ID|")
 st.markdown("Enter words to automatically vectorize and visualize them in 3D space")
+
 
 # Cache Word2Vec model loading
 @st.cache_resource
 def load_word2vec_model(model_name):
     """Load Word2Vec pre-trained model"""
-    with st.spinner(f'Loading {model_name} model... (First time download may take a few minutes)'):
+    with st.spinner(
+        f"Loading {model_name} model... (First time download may take a few minutes)"
+    ):
         model = api.load(model_name)
     return model
+
 
 # Sidebar settings
 with st.sidebar:
@@ -28,13 +34,15 @@ with st.sidebar:
     # Vectorization method selection
     method = st.selectbox(
         "Vectorization Method",
-        ["Word2Vec (glove-wiki-gigaword-50)",
-         "Word2Vec (word2vec-google-news-300)",
-         "Word2Vec (glove-twitter-25)",
-         "Character Features",
-         "Letter Frequency",
-         "N-gram"],
-        help="Choose the method to convert words into vectors"
+        [
+            "Word2Vec (glove-wiki-gigaword-50)",
+            "Word2Vec (word2vec-google-news-300)",
+            "Word2Vec (glove-twitter-25)",
+            "Character Features",
+            "Letter Frequency",
+            "N-gram",
+        ],
+        help="Choose the method to convert words into vectors",
     )
 
     st.divider()
@@ -73,7 +81,7 @@ sister"""
         "Enter Words (one per line)",
         value=default_words,
         height=300,
-        help="Enter one English word per line"
+        help="Enter one English word per line",
     )
 
     st.divider()
@@ -88,6 +96,7 @@ sister"""
         if show_similar:
             similarity_count = st.slider("Number of Similar Words", 1, 10, 5)
 
+
 # Word vectorization functions
 def vectorize_word_features(word):
     """Vectorization based on character features"""
@@ -98,15 +107,15 @@ def vectorize_word_features(word):
     features.append(len(word))
     features.append(len(set(word_lower)))
     # Vowels and consonants
-    vowels = sum(1 for c in word_lower if c in 'aeiou')
-    consonants = sum(1 for c in word_lower if c.isalpha() and c not in 'aeiou')
+    vowels = sum(1 for c in word_lower if c in "aeiou")
+    consonants = sum(1 for c in word_lower if c.isalpha() and c not in "aeiou")
     features.append(vowels)
     features.append(consonants)
 
     # Letter position features
     if word_lower:
-        features.append(ord(word_lower[0]) - ord('a'))
-        features.append(ord(word_lower[-1]) - ord('a'))
+        features.append(ord(word_lower[0]) - ord("a"))
+        features.append(ord(word_lower[-1]) - ord("a"))
     else:
         features.extend([0, 0])
 
@@ -114,30 +123,32 @@ def vectorize_word_features(word):
     features.append(sum(ord(c) for c in word_lower) / 100)
 
     # Specific letter presence
-    common_letters = 'etaoinshrdlu'
+    common_letters = "etaoinshrdlu"
     for letter in common_letters:
         features.append(1 if letter in word_lower else 0)
     return features
+
 
 def vectorize_word_frequency(word):
     """Vectorization based on letter frequency"""
     word_lower = word.lower()
     vector = []
 
-    for letter in 'abcdefghijklmnopqrstuvwxyz':
+    for letter in "abcdefghijklmnopqrstuvwxyz":
         vector.append(word_lower.count(letter))
     return vector
+
 
 def vectorize_word_ngram(word):
     """Vectorization based on N-grams"""
     word_lower = word.lower()
     features = []
 
-    common_bigrams = ['th', 'he', 'in', 'er', 'an', 're', 'on', 'at', 'en', 'nd']
+    common_bigrams = ["th", "he", "in", "er", "an", "re", "on", "at", "en", "nd"]
     for bigram in common_bigrams:
         features.append(word_lower.count(bigram))
 
-    common_trigrams = ['the', 'ing', 'and', 'ion', 'tio', 'ent', 'her']
+    common_trigrams = ["the", "ing", "and", "ion", "tio", "ent", "her"]
     for trigram in common_trigrams:
         features.append(word_lower.count(trigram))
 
@@ -145,8 +156,9 @@ def vectorize_word_ngram(word):
     features.append(len(set(word_lower)))
     return features
 
+
 # Process input words
-words = [w.strip() for w in words_input.split('\n') if w.strip()]
+words = [w.strip() for w in words_input.split("\n") if w.strip()]
 
 if len(words) < 3:
     st.warning("⚠️ Please enter at least 3 words")
@@ -181,7 +193,8 @@ if "Word2Vec" in method:
 
         if len(valid_words) < 3:
             st.error(
-                f"❌ Too few words found in the model ({len(valid_words)} words). Please enter more common English words.")
+                f"❌ Too few words found in the model ({len(valid_words)} words). Please enter more common English words."
+            )
             if missing_words:
                 st.warning(f"⚠️ Words not found in model: {', '.join(missing_words)}")
             st.stop()
@@ -197,10 +210,17 @@ if "Word2Vec" in method:
             st.subheader("🔍 Most Similar Words")
             for word in words[:3]:  # Show similar words for first 3 words only
                 try:
-                    similar_words = w2v_model.most_similar(word.lower(), topn=similarity_count)
+                    similar_words = w2v_model.most_similar(
+                        word.lower(), topn=similarity_count
+                    )
                     with st.expander(f"Words most similar to '{word}'"):
-                        similar_df = pd.DataFrame(similar_words, columns=['Word', 'Similarity'])
-                        st.dataframe(similar_df.style.format({'Similarity': '{:.4f}'}), width='stretch')
+                        similar_df = pd.DataFrame(
+                            similar_words, columns=["Word", "Similarity"]
+                        )
+                        st.dataframe(
+                            similar_df.style.format({"Similarity": "{:.4f}"}),
+                            width="stretch",
+                        )
                 except:
                     pass
 
@@ -218,11 +238,11 @@ else:
         vectorize_func = vectorize_word_ngram
 
     # Vectorize all words
-    with st.spinner('Vectorizing words...'):
+    with st.spinner("Vectorizing words..."):
         vectors = np.array([vectorize_func(word) for word in words])
 
 # Standardization and dimensionality reduction
-with st.spinner('Performing PCA dimensionality reduction...'):
+with st.spinner("Performing PCA dimensionality reduction..."):
     # Standardization
     scaler = StandardScaler()
     vectors_scaled = scaler.fit_transform(vectors)
@@ -232,12 +252,9 @@ with st.spinner('Performing PCA dimensionality reduction...'):
     vectors_3d = pca.fit_transform(vectors_scaled)
 
 # Create DataFrame
-df = pd.DataFrame({
-    'Word': words,
-    'X': vectors_3d[:, 0],
-    'Y': vectors_3d[:, 1],
-    'Z': vectors_3d[:, 2]
-})
+df = pd.DataFrame(
+    {"Word": words, "X": vectors_3d[:, 0], "Y": vectors_3d[:, 1], "Z": vectors_3d[:, 2]}
+)
 
 # Display metrics
 col1, col2, col3, col4 = st.columns(4)
@@ -255,52 +272,48 @@ with col4:
 fig = go.Figure()
 
 # Add scatter points
-fig.add_trace(go.Scatter3d(
-    x=df['X'],
-    y=df['Y'],
-    z=df['Z'],
-    mode='markers+text' if show_labels else 'markers',
-    marker=dict(
-        size=marker_size,
-        color=df['Z'],
-        colorscale='Viridis',
-        showscale=True,
-        colorbar=dict(title="Z Axis"),
-        line=dict(color='white', width=2)
-    ),
-    text=df['Word'] if show_labels else None,
-    textposition='top center',
-    textfont=dict(size=10),
-    hovertemplate='<b>%{text}</b><br>' +
-                  'X: %{x:.3f}<br>' +
-                  'Y: %{y:.3f}<br>' +
-                  'Z: %{z:.3f}<br>' +
-                  '<extra></extra>',
-    name='Words'
-))
+fig.add_trace(
+    go.Scatter3d(
+        x=df["X"],
+        y=df["Y"],
+        z=df["Z"],
+        mode="markers+text" if show_labels else "markers",
+        marker=dict(
+            size=marker_size,
+            color=df["Z"],
+            colorscale="Viridis",
+            showscale=True,
+            colorbar=dict(title="Z Axis"),
+            line=dict(color="white", width=2),
+        ),
+        text=df["Word"] if show_labels else None,
+        textposition="top center",
+        textfont=dict(size=10),
+        hovertemplate="<b>%{text}</b><br>"
+        + "X: %{x:.3f}<br>"
+        + "Y: %{y:.3f}<br>"
+        + "Z: %{z:.3f}<br>"
+        + "<extra></extra>",
+        name="Words",
+    )
+)
 
 # Update layout
 fig.update_layout(
-    title=dict(
-        text='Word Vectors in 3D Space',
-        x=0.5,
-        xanchor='center'
-    ),
+    title=dict(text="Word Vectors in 3D Space", x=0.5, xanchor="center"),
     scene=dict(
-        xaxis=dict(title='PC1', backgroundcolor="rgb(230, 230,230)", gridcolor="white"),
-        yaxis=dict(title='PC2', backgroundcolor="rgb(230, 230,230)", gridcolor="white"),
-        zaxis=dict(title='PC3', backgroundcolor="rgb(230, 230,230)", gridcolor="white"),
-        camera=dict(
-            eye=dict(x=1.5, y=1.5, z=1.5)
-        )
+        xaxis=dict(title="PC1", backgroundcolor="rgb(230, 230,230)", gridcolor="white"),
+        yaxis=dict(title="PC2", backgroundcolor="rgb(230, 230,230)", gridcolor="white"),
+        zaxis=dict(title="PC3", backgroundcolor="rgb(230, 230,230)", gridcolor="white"),
+        camera=dict(eye=dict(x=1.5, y=1.5, z=1.5)),
     ),
     height=700,
-    hovermode='closest',
-    showlegend=False
+    hovermode="closest",
+    showlegend=False,
 )
 
 # Display chart
-st.plotly_chart(fig, width='stretch')
+st.plotly_chart(fig, width="stretch")
 
 # Word2Vec special feature: calculate similarity
 if "Word2Vec" in method and len(words) >= 2:
@@ -317,31 +330,33 @@ if "Word2Vec" in method and len(words) >= 2:
                 st.metric(
                     f"Similarity between '{word1}' and '{word2}'",
                     f"{similarity:.4f}",
-                    help="Similarity ranges from -1 to 1, closer to 1 means more similar"
+                    help="Similarity ranges from -1 to 1, closer to 1 means more similar",
                 )
 
                 # Visualize similarity
-                fig_sim = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=similarity,
-                    domain={'x': [0, 1], 'y': [0, 1]},
-                    gauge={
-                        'axis': {'range': [-1, 1]},
-                        'bar': {'color': "darkblue"},
-                        'steps': [
-                            {'range': [-1, 0], 'color': "lightgray"},
-                            {'range': [0, 0.5], 'color': "lightyellow"},
-                            {'range': [0.5, 1], 'color': "lightgreen"}
-                        ],
-                        'threshold': {
-                            'line': {'color': "red", 'width': 4},
-                            'thickness': 0.75,
-                            'value': 0.8
-                        }
-                    }
-                ))
+                fig_sim = go.Figure(
+                    go.Indicator(
+                        mode="gauge+number",
+                        value=similarity,
+                        domain={"x": [0, 1], "y": [0, 1]},
+                        gauge={
+                            "axis": {"range": [-1, 1]},
+                            "bar": {"color": "darkblue"},
+                            "steps": [
+                                {"range": [-1, 0], "color": "lightgray"},
+                                {"range": [0, 0.5], "color": "lightyellow"},
+                                {"range": [0.5, 1], "color": "lightgreen"},
+                            ],
+                            "threshold": {
+                                "line": {"color": "red", "width": 4},
+                                "thickness": 0.75,
+                                "value": 0.8,
+                            },
+                        },
+                    )
+                )
                 fig_sim.update_layout(height=300)
-                st.plotly_chart(fig_sim, width='stretch')
+                st.plotly_chart(fig_sim, width="stretch")
             except:
                 st.error("Unable to calculate similarity")
 
@@ -351,26 +366,31 @@ with st.expander("📈 View PCA Principal Component Information"):
 
     with col1:
         st.subheader("Explained Variance Ratio")
-        variance_df = pd.DataFrame({
-            'Principal Component': [f'PC{i + 1}' for i in range(3)],
-            'Explained Variance Ratio': pca.explained_variance_ratio_,
-            'Cumulative Explained Variance': np.cumsum(pca.explained_variance_ratio_)
-        })
-        st.dataframe(variance_df.style.format({
-            'Explained Variance Ratio': '{:.2%}',
-            'Cumulative Explained Variance': '{:.2%}'
-        }), width='stretch')
+        variance_df = pd.DataFrame(
+            {
+                "Principal Component": [f"PC{i + 1}" for i in range(3)],
+                "Explained Variance Ratio": pca.explained_variance_ratio_,
+                "Cumulative Explained Variance": np.cumsum(
+                    pca.explained_variance_ratio_
+                ),
+            }
+        )
+        st.dataframe(
+            variance_df.style.format(
+                {
+                    "Explained Variance Ratio": "{:.2%}",
+                    "Cumulative Explained Variance": "{:.2%}",
+                }
+            ),
+            width="stretch",
+        )
 
     with col2:
         st.subheader("Coordinate Data")
         st.dataframe(
-            df.style.format({
-                'X': '{:.4f}',
-                'Y': '{:.4f}',
-                'Z': '{:.4f}'
-            }),
-            width='stretch',
-            height=300
+            df.style.format({"X": "{:.4f}", "Y": "{:.4f}", "Z": "{:.4f}"}),
+            width="stretch",
+            height=300,
         )
 
 # Download data
@@ -383,7 +403,7 @@ with col1:
         label="📥 Download 3D Coordinates (CSV)",
         data=csv,
         file_name="word_vectors_3d.csv",
-        mime="text/csv"
+        mime="text/csv",
     )
 
 with col2:
@@ -394,7 +414,7 @@ with col2:
         label="📥 Download Raw Vectors (CSV)",
         data=vectors_csv,
         file_name="word_vectors_raw.csv",
-        mime="text/csv"
+        mime="text/csv",
     )
 
 # Usage instructions
@@ -445,7 +465,7 @@ with st.expander("ℹ️ How to Use"):
 st.divider()
 st.markdown(
     "<p style='text-align: center; color: gray;'>Word Vector 3D Visualization Tool | Built with Streamlit & Gensim</p>",
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 # Required packages section

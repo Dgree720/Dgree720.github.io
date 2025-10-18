@@ -10,7 +10,7 @@ load_dotenv(override=True)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=openai.api_key)
 
-st.title("🗣️ LLM Story Telling + GPT-5-nano voice 16_7LLM07"+ "| Student ID |")
+st.title("🗣️ LLM Story Telling + GPT-5-nano voice 16_7LLM07" + "| 322022 |")
 
 if st.button("Storytelling"):
     story_placeholder = st.empty()
@@ -20,7 +20,10 @@ if st.button("Storytelling"):
     response = client.chat.completions.create(
         model="gpt-5-nano",
         messages=[
-            {"role": "user", "content": "Please write a bedtime story approximately 100 words in length"},
+            {
+                "role": "user",
+                "content": "Please write a bedtime story approximately 100 words in length",
+            },
         ],
         stream=True,
     )
@@ -34,7 +37,7 @@ if st.button("Storytelling"):
     with st.spinner("Generating audio..."):
         speech_response = openai.audio.speech.create(
             model="gpt-4o-mini-tts",  # Speech Synthesis Model
-            voice="nova",   # options:   "nova", "shimmer", "echo", "fable", "onyx"
+            voice="nova",  # options:   "nova", "shimmer", "echo", "fable", "onyx"
             input=story,
         )
         audio_path = "story.mp3"

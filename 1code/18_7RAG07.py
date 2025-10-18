@@ -16,7 +16,9 @@ Context: {context}
 Question: {question}
 Answer:
 """
-prompt = PromptTemplate(template=promptTemplate, input_variables=["context", "question"])
+prompt = PromptTemplate(
+    template=promptTemplate, input_variables=["context", "question"]
+)
 
 # --- Global Variables ---
 vector_store = None
@@ -40,13 +42,11 @@ def load_pdf_and_build_db(uploaded_pdf):
     global vector_store, retriever
     # Create vector database, specify persist_directory for proper table initialization
     vector_store = Chroma.from_documents(
-        documents=chunks,
-        embedding=FastEmbedEmbeddings(),
-        persist_directory="chroma_db"
+        documents=chunks, embedding=FastEmbedEmbeddings(), persist_directory="chroma_db"
     )
     retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
-        search_kwargs={"k": 5, "score_threshold": 0.2}
+        search_kwargs={"k": 5, "score_threshold": 0.2},
     )
     return "PDF loaded and vector DB created!"
 
@@ -71,11 +71,11 @@ def model_response(message):
 
 def main():
     global llm
-    st.title("📚 Case PDF Reading Assistant 18_7RAG07" + '|Student ID|')
+    st.title("📚 Case PDF Reading Assistant 18_7RAG07" + "|Student ID|")
 
     # Initialize LLM (avoid repeated initialization)
     if llm is None:
-        llm = OllamaLLM(model='gemma3:1b', temperature=0.7)
+        llm = OllamaLLM(model="gemma3:1b", temperature=0.7)
 
     # Use session_state to store conversation history
     if "conversation" not in st.session_state:

@@ -10,11 +10,14 @@ load_dotenv(override=True)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 # Retrieve the API keys from the environment variable
 # Streamlit interface
-st.title("🎨 AI Image Generator（DALL·E）16_3LLM03"+ " | Student ID | ")
+st.title("🎨 AI Image Generator（DALL·E）16_3LLM03" + " | 322022 | ")
 st.caption("Enter a text prompt, and let OpenAI generate the image for you!")
 
 # prompt
-prompt = st.text_input("Please enter the description of what you want to generate:", value="Robot holding a red skateboard")
+prompt = st.text_input(
+    "Please enter the description of what you want to generate:",
+    value="Robot holding a red skateboard",
+)
 
 if st.button("Generate Image"):
     with st.spinner("Image generation in progress; please wait..."):
@@ -26,6 +29,6 @@ if st.button("Generate Image"):
                 n=1,
             )
             image_url = response.data[0].url
-            st.image(image_url, caption="🖼️ generated image", width='stretch')
+            st.image(image_url, caption="🖼️ generated image", width="stretch")
         except Exception as e:
             st.error(f"⚠️ error：{e}")

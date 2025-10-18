@@ -1,15 +1,16 @@
-#Filename: 16_2LLM02.py
+# Filename: 16_2LLM02.py
 import os
 import openai
 import datetime
 from openai import OpenAI
 
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 # Retrieve the API keys from the environment variable
-openai.api_key = os.getenv('OPENAI_API_KEY')
-client = OpenAI(api_key= openai.api_key )
+openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=openai.api_key)
 
 response = client.chat.completions.create(
     model="gpt-5-nano",
@@ -32,4 +33,4 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 # Assignment setting: Please enter your Student ID.
 print(" ")
-print('16_2LLM02'+ ' | Student ID | ', datetime.datetime.now())
+print("16_2LLM02" + " | 322022 | ", datetime.datetime.now())

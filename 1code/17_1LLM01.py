@@ -19,13 +19,13 @@ princess data python husband wife"""
 # Text input
 st.sidebar.subheader("Input Text")
 text_input = st.sidebar.text_area(
-    "Enter text (10+ words recommended):",
-    height=200,
-    value=default_text
+    "Enter text (10+ words recommended):", height=200, value=default_text
 )
 
 # Parameters
-num_words = st.sidebar.slider("Number of words to visualize", min_value=3, max_value=50, value=10)
+num_words = st.sidebar.slider(
+    "Number of words to visualize", min_value=3, max_value=50, value=10
+)
 method = st.sidebar.selectbox("Dimensionality reduction method", ["t-SNE", "PCA"])
 random_state = st.sidebar.number_input("Random Seed", value=42, min_value=0)
 
@@ -33,7 +33,7 @@ random_state = st.sidebar.number_input("Random Seed", value=42, min_value=0)
 def extract_words(text, n_words=10):
     """Extract individual words from text"""
     # Remove extra whitespace and split into words
-    words = re.findall(r'\b\w+\b', text.lower())
+    words = re.findall(r"\b\w+\b", text.lower())
     # Remove duplicates while preserving order
     seen = set()
     unique_words = []
@@ -53,7 +53,9 @@ else:
     words = extract_words(text_input, num_words)
 
     if len(words) < 3:
-        st.error(f"Not enough words! Please enter at least 3 unique words (found {len(words)}).")
+        st.error(
+            f"Not enough words! Please enter at least 3 unique words (found {len(words)})."
+        )
     else:
         st.success(f"✅ Extracted {len(words)} unique words")
 
@@ -63,14 +65,13 @@ else:
 
         if st.button("🚀 Generate 3D Visualization", type="primary"):
             with st.spinner("Processing..."):
-
                 # Step 1: Create context for each word (using surrounding context)
                 st.write("### Step 1: Word Vectorization (TF-IDF)")
                 st.info("Creating context vectors for each word...")
 
                 # Create simple context by treating each word as a document
                 # For better results, you could use word2vec or similar
-                vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(2, 4))
+                vectorizer = TfidfVectorizer(analyzer="char", ngram_range=(2, 4))
 
                 try:
                     word_vectors = vectorizer.fit_transform(words)
@@ -87,7 +88,9 @@ else:
                     perplexity = min(5, len(words) - 1)
                     if perplexity < 2:
                         perplexity = 2
-                    reducer = TSNE(n_components=3, random_state=random_state, perplexity=perplexity)
+                    reducer = TSNE(
+                        n_components=3, random_state=random_state, perplexity=perplexity
+                    )
                 else:
                     reducer = PCA(n_components=3, random_state=random_state)
 
@@ -99,39 +102,43 @@ else:
                 st.write("💡 Use mouse to rotate, zoom, and pan the 3D plot")
 
                 # Create 3D scatter plot
-                fig = go.Figure(data=[go.Scatter3d(
-                    x=vectors_3d[:, 0],
-                    y=vectors_3d[:, 1],
-                    z=vectors_3d[:, 2],
-                    mode='markers+text',
-                    marker=dict(
-                        size=12,
-                        color=list(range(len(words))),
-                        colorscale='Viridis',
-                        showscale=True,
-                        colorbar=dict(title="Word Index"),
-                        line=dict(color='white', width=1)
-                    ),
-                    text=words,
-                    textposition="top center",
-                    textfont=dict(size=12, color='black', family='Arial Black'),
-                    hovertext=[f"Word {i}: {word}" for i, word in enumerate(words)],
-                    hoverinfo='text'
-                )])
+                fig = go.Figure(
+                    data=[
+                        go.Scatter3d(
+                            x=vectors_3d[:, 0],
+                            y=vectors_3d[:, 1],
+                            z=vectors_3d[:, 2],
+                            mode="markers+text",
+                            marker=dict(
+                                size=12,
+                                color=list(range(len(words))),
+                                colorscale="Viridis",
+                                showscale=True,
+                                colorbar=dict(title="Word Index"),
+                                line=dict(color="white", width=1),
+                            ),
+                            text=words,
+                            textposition="top center",
+                            textfont=dict(size=12, color="black", family="Arial Black"),
+                            hovertext=[
+                                f"Word {i}: {word}" for i, word in enumerate(words)
+                            ],
+                            hoverinfo="text",
+                        )
+                    ]
+                )
 
                 fig.update_layout(
                     title=f"Word Vectors in 3D Space (Each point = 1 word)",
                     scene=dict(
-                        xaxis_title='Dimension 1',
-                        yaxis_title='Dimension 2',
-                        zaxis_title='Dimension 3',
-                        camera=dict(
-                            eye=dict(x=1.5, y=1.5, z=1.5)
-                        )
+                        xaxis_title="Dimension 1",
+                        yaxis_title="Dimension 2",
+                        zaxis_title="Dimension 3",
+                        camera=dict(eye=dict(x=1.5, y=1.5, z=1.5)),
                     ),
                     width=900,
                     height=700,
-                    hovermode='closest'
+                    hovermode="closest",
                 )
 
                 st.plotly_chart(fig, use_container_width=True)
@@ -147,20 +154,20 @@ else:
                 with st.expander("📊 View 3D Coordinates"):
                     import pandas as pd
 
-                    df = pd.DataFrame(
-                        vectors_3d,
-                        columns=['X', 'Y', 'Z']
-                    )
-                    df.insert(0, 'Word', words)
+                    df = pd.DataFrame(vectors_3d, columns=["X", "Y", "Z"])
+                    df.insert(0, "Word", words)
                     st.dataframe(df, use_container_width=True)
 
                 # Distance matrix
                 with st.expander("📏 Word Similarity (Euclidean Distance)"):
                     from scipy.spatial.distance import cdist
 
-                    distances = cdist(vectors_3d, vectors_3d, metric='euclidean')
+                    distances = cdist(vectors_3d, vectors_3d, metric="euclidean")
                     dist_df = pd.DataFrame(distances, columns=words, index=words)
-                    st.dataframe(dist_df.style.background_gradient(cmap='YlOrRd_r'), use_container_width=True)
+                    st.dataframe(
+                        dist_df.style.background_gradient(cmap="YlOrRd_r"),
+                        use_container_width=True,
+                    )
 
 # Instructions
 st.sidebar.markdown("---")

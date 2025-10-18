@@ -26,24 +26,26 @@ Question: {question}
 Answer:
 """
 
-prompt = PromptTemplate(template=promptTemplate, input_variables=["context", "question"])
+prompt = PromptTemplate(
+    template=promptTemplate, input_variables=["context", "question"]
+)
 
 # Initialize session state variables
-if 'vector_store' not in st.session_state:
+if "vector_store" not in st.session_state:
     st.session_state.vector_store = None
-if 'retriever' not in st.session_state:
+if "retriever" not in st.session_state:
     st.session_state.retriever = None
-if 'llm' not in st.session_state:
-    st.session_state.llm = OllamaLLM(model='gemma3:1b', temperature=0.7)
-if 'chat_history' not in st.session_state:
+if "llm" not in st.session_state:
+    st.session_state.llm = OllamaLLM(model="gemma3:1b", temperature=0.7)
+if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-if 'pdf_processed' not in st.session_state:
+if "pdf_processed" not in st.session_state:
     st.session_state.pdf_processed = False
 
 
 # --- Load PDF & Build VectorDB ---
 def load_pdf_and_build_db(uploaded_pdf):
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(uploaded_pdf.getvalue())
         tmp_file_path = tmp_file.name
 
@@ -60,12 +62,12 @@ def load_pdf_and_build_db(uploaded_pdf):
             documents=chunks,
             embedding=FastEmbedEmbeddings(),
             persist_directory=CHROMA_DB_DIR,
-            collection_name=collection_name
+            collection_name=collection_name,
         )
 
         st.session_state.retriever = st.session_state.vector_store.as_retriever(
             search_type="similarity_score_threshold",
-            search_kwargs={"k": 5, "score_threshold": 0.2}
+            search_kwargs={"k": 5, "score_threshold": 0.2},
         )
 
         # Mark as processed
@@ -88,10 +90,10 @@ def get_model_response(question):
 
     try:
         caseChain = (
-                {"context": st.session_state.retriever, "question": RunnablePassthrough()}
-                | prompt
-                | st.session_state.llm
-                | StrOutputParser()
+            {"context": st.session_state.retriever, "question": RunnablePassthrough()}
+            | prompt
+            | st.session_state.llm
+            | StrOutputParser()
         )
 
         with st.spinner("Thinking..."):
@@ -103,7 +105,7 @@ def get_model_response(question):
 
 
 # --- Main UI ---
-st.title("📚 Case PDF Reading Assistant II 18_8RAG08"+ '|Student ID|')
+st.title("📚 Case PDF Reading Assistant II 18_8RAG08" + "|Student ID|")
 
 # Sidebar for PDF upload
 with st.sidebar:

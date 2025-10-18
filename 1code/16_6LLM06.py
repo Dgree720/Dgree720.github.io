@@ -5,8 +5,9 @@ import streamlit as st
 from openai import OpenAI
 
 from dotenv import load_dotenv
+
 load_dotenv(override=True)
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai.api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=openai.api_key)
 
 st.title("gpt-5-nano LLM Story Telling")
@@ -18,7 +19,10 @@ if st.button("Storytelling"):
     response = client.chat.completions.create(
         model="gpt-5-nano",
         messages=[
-            {"role": "user", "content": "Please write a bedtime story approximately 100 words in length"},
+            {
+                "role": "user",
+                "content": "Please write a bedtime story approximately 100 words in length",
+            },
         ],
         stream=True,
     )
