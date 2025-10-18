@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 # Retrieve the API keys from the environment variable
 GEMINI_api_key = os.getenv("GEMINI_API_KEY")
-print(GEMINI_api_key)
+# print(GEMINI_api_key)
 client = OpenAI(
     api_key=GEMINI_api_key,
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
