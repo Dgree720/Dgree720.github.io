@@ -12,7 +12,7 @@ import gensim.downloader as api
 st.set_page_config(
     page_title="Word Vector 3D Visualization", layout="wide", page_icon="📊"
 )
-st.title("📊 Word Vector 3D Visualization|Student ID|")
+st.title("📊 Word Vector 3D Visualization|322022|")
 st.markdown("Enter words to automatically vectorize and visualize them in 3D space")
 
 
