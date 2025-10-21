@@ -513,7 +513,7 @@ class ChatBot {
                     <div class="chatbot-header">
                         <div class="chatbot-title">
                             <span class="title-icon">🤖</span>
-                            AI Assistant v6
+                            Andreas' AI Assistant 
                         </div>
                         <button class="chatbot-close" id="chatbotClose">
                             <i class="fas fa-times"></i>
