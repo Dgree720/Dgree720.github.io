@@ -19,7 +19,9 @@ os.makedirs(CHROMA_DB_DIR, exist_ok=True)
 st.set_page_config(page_title="PDF Case Assistant", layout="wide")
 
 # --- Prompt Template ---
-promptTemplate = """You are an expert assistant. Answer the question as precisely as possible using the provided context. If not available, say "answer not available in context."
+promptTemplate = """You are an expert assistant. 
+Answer the question as precisely as possible using the provided context. 
+If not available, say "answer not available in context."
 
 Context: {context}
 Question: {question}
